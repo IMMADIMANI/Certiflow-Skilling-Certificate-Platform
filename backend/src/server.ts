@@ -51,6 +51,17 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/verify', verificationRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// Root status check
+app.get('/', (_req, res) => {
+  res.json({
+    status: 'online',
+    service: 'CertiFlow API — Skilling Certificate Platform',
+    version: '1.0.0',
+    health: '/health',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date(), service: 'CertiFlow API' });
