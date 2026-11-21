@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
-import { batchApi } from '../../services/api';
+import { batchApi, certApi } from '../../services/api';
 import { Batch, Candidate, ValidationError } from '../../types';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { ArrowLeft, Upload, AlertCircle, CheckCircle, Loader2, Download, RotateCcw } from 'lucide-react';
@@ -260,7 +260,9 @@ export default function BatchDetailPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={c.status} />
-                  <a href={`/api/certificates/${c.id}/download`} target="_blank" rel="noopener" className="text-blue-600 text-xs hover:underline">Download PDF</a>
+                  <a href={certApi.downloadUrl(c.id)} target="_blank" rel="noopener" className="text-blue-600 text-xs hover:underline flex items-center gap-1 font-medium">
+                    <Download className="w-3.5 h-3.5" /> Download PDF
+                  </a>
                 </div>
               </div>
             ))}

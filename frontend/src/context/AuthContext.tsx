@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
+  quickSwitch: (email: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -41,6 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(newUser);
   };
 
+  const quickSwitch = async (email: string) => {
+    await login(email, 'password123');
+  };
+
   const logout = () => {
     localStorage.removeItem('certiflow_token');
     localStorage.removeItem('certiflow_user');
@@ -49,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, quickSwitch, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
