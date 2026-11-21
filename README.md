@@ -129,12 +129,7 @@ To test the entire governance workflow without typing credentials, reviewers can
 ![Live Render Deployment](./docs/images/render_deployment_live.png)
 *Automated Prisma database migrations and server initialization over HTTPS.*
 
-### Live Global Frontend CDN (Vercel)
-![Production Vercel Deployment](./docs/images/vercel_env_setup.png)
-*Vercel deployment linking React frontend to the Render Cloud API via `VITE_API_URL`.*
 
-
-```
 certiflow/
 ├── frontend/                          # React + Vite + TypeScript
 │   ├── src/
