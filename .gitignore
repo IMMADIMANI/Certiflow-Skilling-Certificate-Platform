@@ -1,0 +1,45 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+.next/
+
+# Environment files - NEVER commit these
+.env
+.env.local
+.env.production
+.env.*.local
+backend/.env
+frontend/.env
+
+# Prisma
+backend/prisma/migrations/*.sql
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Uploads and generated files
+backend/uploads/*
+backend/certificates/*
+!backend/uploads/.gitkeep
+!backend/certificates/.gitkeep
+
+# TypeScript
+*.tsbuildinfo
+
+# Jest
+coverage/

@@ -1,0 +1,1283 @@
+The following is a <SYSTEM_MESSAGE> not actually sent by the user. It is provided by the system as important information to pay attention to.
+
+<SYSTEM_MESSAGE>
+[Message] timestamp=2026-11-21T04:51:05Z sender=2193b859-752e-4a3b-8f48-c88f19b9dd99 priority=MESSAGE_PRIORITY_HIGH content=You are building the CertiFlow backend. Work as fast as possible. Use run_command to create files and install packages. The project root is C:\Users\Admin\.gemini\antigravity\scratch\certiflow
+
+CRITICAL: Use BypassSandbox: true for ALL npm install commands. Use BypassSandbox: false for everything else.
+
+## STEP 1: Initialize backend npm project
+
+Run in C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend:
+```
+npm init -y
+```
+
+Then update package.json scripts. Create the file at backend/package.json with the full content including correct scripts.
+
+## STEP 2: Install dependencies (BypassSandbox: true)
+Run from backend directory:
+```
+npm install express cors dotenv bcryptjs jsonwebtoken @prisma/client redis bullmq socket.io multer xlsx pdfkit qrcode uuid
+```
+Then:
+```
+npm install --save-dev typescript @types/node @types/express @types/cors @types/bcryptjs @types/jsonwebtoken @types/multer @types/uuid ts-node tsx nodemon @types/pdfkit jest @types/jest ts-jest supertest @types/supertest prisma
+```
+
+## STEP 3: Create ALL these files with COMPLETE content using write_file tool:
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\tsconfig.json
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\.env
+```
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/certiflow"
+REDIS_URL="redis://localhost:6379"
+JWT_SECRET="certiflow-super-secret-jwt-key-2024-hackathon"
+JWT_EXPIRES_IN="7d"
+PORT=3001
+NODE_ENV=development
+UPLOAD_DIR="./uploads"
+CERT_DIR="./certificates"
+FRONTEND_URL="http://localhost:5173"
+QUALITY_REVIEW_THRESHOLD=50
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\nodemon.json
+```json
+{
+  "watch": ["src"],
+  "ext": "ts,json",
+  "ignore": ["src/**/*.spec.ts"],
+  "exec": "tsx src/server.ts"
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\jest.config.js
+```js
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  roots: ['<rootDir>/tests'],
+  testMatch: ['**/*.test.ts'],
+  transform: { '^.+\\.tsx?$': ['ts-jest', { tsconfig: { strict: false } }] },
+};
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\prisma\schema.prisma
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  TRAINING_CENTRE
+  DISTRICT_OFFICER
+  QUALITY_TEAM
+  STATE_OFFICE
+  CANDIDATE
+}
+
+enum BatchStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  QUALITY_REVIEW
+  STATE_REVIEW
+  APPROVED
+  REJECTED
+  RETURNED
+  CANCELLED
+}
+
+enum CandidateStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CERTIFIED
+  CANCELLED
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  RETURNED
+}
+
+enum CertificateStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  RETRYING
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String
+  name            String
+  role            UserRole
+  districtId      String?
+  district        District? @relation(fields: [districtId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  trainingCentre  TrainingCentre?
+  districtApprovals DistrictApproval[]
+  qualityReviews  QualityReview[]
+  stateApprovals  StateApproval[]
+  auditLogs       AuditLog[]
+}
+
+model District {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  createdAt DateTime @default(now())
+  users     User[]
+  trainingCentres TrainingCentre[]
+}
+
+model TrainingCentre {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  name       String
+  code       String   @unique
+  districtId String
+  district   District @relation(fields: [districtId], references: [id])
+  address    String?
+  createdAt  DateTime @default(now())
+  batches    Batch[]
+}
+
+model Batch {
+  id               String         @id @default(uuid())
+  trainingCentreId String
+  trainingCentre   TrainingCentre @relation(fields: [trainingCentreId], references: [id])
+  title            String
+  description      String?
+  courseType       String
+  courseDuration   String
+  status           BatchStatus    @default(DRAFT)
+  submittedAt      DateTime?
+  approvedAt       DateTime?
+  rejectedAt       DateTime?
+  returnReason     String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  candidates       Candidate[]
+  districtApprovals DistrictApproval[]
+  qualityReviews   QualityReview[]
+  stateApprovals   StateApproval[]
+  certificates     Certificate[]
+  auditLogs        AuditLog[]
+}
+
+model Candidate {
+  id               String          @id @default(uuid())
+  batchId          String
+  batch            Batch           @relation(fields: [batchId], references: [id])
+  name             String
+  fatherName       String
+  dob              DateTime
+  phone            String
+  email            String?
+  aadhar           String?
+  courseCompleted  String
+  completionDate   DateTime
+  marks            Float?
+  grade            String?
+  status           CandidateStatus @default(PENDING)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  certificate      Certificate?
+  notifications    Notification[]
+}
+
+model DistrictApproval {
+  id         String           @id @default(uuid())
+  batchId    String
+  batch      Batch            @relation(fields: [batchId], references: [id])
+  officerId  String
+  officer    User             @relation(fields: [officerId], references: [id])
+  decision   ApprovalDecision
+  remarks    String?
+  createdAt  DateTime         @default(now())
+  @@unique([batchId, officerId])
+}
+
+model QualityReview {
+  id         String   @id @default(uuid())
+  batchId    String   @unique
+  batch      Batch    @relation(fields: [batchId], references: [id])
+  reviewerId String
+  reviewer   User     @relation(fields: [reviewerId], references: [id])
+  decision   String
+  remarks    String?
+  createdAt  DateTime @default(now())
+}
+
+model StateApproval {
+  id        String   @id @default(uuid())
+  batchId   String
+  batch     Batch    @relation(fields: [batchId], references: [id])
+  officerId String
+  officer   User     @relation(fields: [officerId], references: [id])
+  decision  String
+  remarks   String?
+  createdAt DateTime @default(now())
+}
+
+model Certificate {
+  id                String            @id @default(uuid())
+  candidateId       String            @unique
+  candidate         Candidate         @relation(fields: [candidateId], references: [id])
+  batchId           String
+  batch             Batch             @relation(fields: [batchId], references: [id])
+  certificateNumber String            @unique
+  pdfPath           String?
+  qrCode            String?
+  issuedAt          DateTime          @default(now())
+  status            CertificateStatus @default(ACTIVE)
+  cancelledAt       DateTime?
+  cancelReason      String?
+  notifications     Notification[]
+}
+
+model Notification {
+  id            String             @id @default(uuid())
+  candidateId   String
+  candidate     Candidate          @relation(fields: [candidateId], references: [id])
+  certificateId String
+  certificate   Certificate        @relation(fields: [certificateId], references: [id])
+  channel       String             @default("WHATSAPP")
+  status        NotificationStatus @default(PENDING)
+  attempts      Int                @default(0)
+  lastAttempt   DateTime?
+  deliveredAt   DateTime?
+  createdAt     DateTime           @default(now())
+  @@unique([candidateId, channel])
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  action         String
+  entityType     String
+  entityId       String
+  batchId        String?
+  batch          Batch?   @relation(fields: [batchId], references: [id])
+  previousStatus String?
+  newStatus      String?
+  remarks        String?
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\types\index.ts
+```typescript
+export type UserRole = 'TRAINING_CENTRE' | 'DISTRICT_OFFICER' | 'QUALITY_TEAM' | 'STATE_OFFICE' | 'CANDIDATE';
+export type BatchStatus = 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'QUALITY_REVIEW' | 'STATE_REVIEW' | 'APPROVED' | 'REJECTED' | 'RETURNED' | 'CANCELLED';
+export type CandidateStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CERTIFIED' | 'CANCELLED';
+
+export interface JwtPayload {
+  userId: string;
+  email: string;
+  role: UserRole;
+  name: string;
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\config\database.ts
+```typescript
+import { PrismaClient } from '@prisma/client';
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+export const prisma = globalForPrisma.prisma || new PrismaClient();
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+export default prisma;
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\config\redis.ts
+```typescript
+import { createClient } from 'redis';
+export let redisClient: ReturnType<typeof createClient> | null = null;
+export let redisAvailable = false;
+
+export async function connectRedis() {
+  try {
+    const client = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+    client.on('error', () => {});
+    await client.connect();
+    redisClient = client;
+    redisAvailable = true;
+    console.log('Redis connected');
+  } catch {
+    console.log('Redis unavailable - running without cache/queues');
+    redisAvailable = false;
+  }
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\middleware\auth.middleware.ts
+```typescript
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { JwtPayload, UserRole } from '../types';
+
+export interface AuthRequest extends Request {
+  user?: JwtPayload;
+}
+
+export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'No token provided' }); return;
+  }
+  const token = authHeader.substring(7);
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as JwtPayload;
+    req.user = decoded;
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+}
+
+export function authorize(...roles: UserRole[]) {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    if (!req.user) { res.status(401).json({ error: 'Not authenticated' }); return; }
+    if (!roles.includes(req.user.role)) { res.status(403).json({ error: 'Insufficient permissions' }); return; }
+    next();
+  };
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\audit\audit.service.ts
+```typescript
+import prisma from '../../config/database';
+
+interface AuditParams {
+  userId: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  batchId?: string;
+  previousStatus?: string;
+  newStatus?: string;
+  remarks?: string;
+  ipAddress?: string;
+}
+
+export async function createAuditLog(params: AuditParams) {
+  try {
+    return await prisma.auditLog.create({ data: params });
+  } catch (error) {
+    console.error('Audit log error:', error);
+  }
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\audit\audit.controller.ts
+```typescript
+import { Response } from 'express';
+import { AuthRequest } from '../../middleware/auth.middleware';
+import prisma from '../../config/database';
+
+export async function getAuditLogs(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const skip = (page - 1) * limit;
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        skip, take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: { name: true, email: true, role: true } } }
+      }),
+      prisma.auditLog.count()
+    ]);
+    res.json({ logs, total, page, pages: Math.ceil(total / limit) });
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch audit logs' });
+  }
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\audit\audit.routes.ts
+```typescript
+import { Router } from 'express';
+import { authenticate, authorize } from '../../middleware/auth.middleware';
+import { getAuditLogs } from './audit.controller';
+const router = Router();
+router.get('/', authenticate, authorize('STATE_OFFICE', 'DISTRICT_OFFICER'), getAuditLogs);
+export default router;
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\auth\auth.controller.ts
+```typescript
+import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import prisma from '../../config/database';
+import { createAuditLog } from '../audit/audit.service';
+import { AuthRequest } from '../../middleware/auth.middleware';
+
+export async function login(req: Request, res: Response): Promise<void> {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) { res.status(400).json({ error: 'Email and password required' }); return; }
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    if (!user) { res.status(401).json({ error: 'Invalid credentials' }); return; }
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) { res.status(401).json({ error: 'Invalid credentials' }); return; }
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role, name: user.name },
+      process.env.JWT_SECRET || 'secret',
+      { expiresIn: '7d' }
+    );
+    await createAuditLog({ userId: user.id, action: 'LOGIN', entityType: 'USER', entityId: user.id });
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+export async function getProfile(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: { id: true, email: true, name: true, role: true, createdAt: true }
+    });
+    if (!user) { res.status(404).json({ error: 'User not found' }); return; }
+    res.json(user);
+  } catch {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+export async function getDemoAccounts(req: Request, res: Response): Promise<void> {
+  const accounts = [
+    { name: 'Anika Singh', email: 'anika@certiflow.in', role: 'TRAINING_CENTRE', password: 'password123', description: 'Training Centre Manager' },
+    { name: 'Dev Sharma', email: 'dev@certiflow.in', role: 'DISTRICT_OFFICER', password: 'password123', description: 'District Officer - North' },
+    { name: 'Meera Patel', email: 'meera@certiflow.in', role: 'DISTRICT_OFFICER', password: 'password123', description: 'District Officer - South' },
+    { name: 'Kabir Khan', email: 'kabir@certiflow.in', role: 'DISTRICT_OFFICER', password: 'password123', description: 'District Officer - East' },
+    { name: 'Neha Gupta', email: 'neha@certiflow.in', role: 'QUALITY_TEAM', password: 'password123', description: 'Quality Review Officer' },
+    { name: 'Farah Irani', email: 'farah@certiflow.in', role: 'STATE_OFFICE', password: 'password123', description: 'State Office Director' },
+  ];
+  res.json(accounts);
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\auth\auth.routes.ts
+```typescript
+import { Router } from 'express';
+import { login, getProfile, getDemoAccounts } from './auth.controller';
+import { authenticate } from '../../middleware/auth.middleware';
+const router = Router();
+router.post('/login', login);
+router.get('/profile', authenticate, getProfile);
+router.get('/demo-accounts', getDemoAccounts);
+export default router;
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\utils\validators.ts
+```typescript
+export interface ValidationError {
+  row: number;
+  field: string;
+  message: string;
+}
+
+export function validateCandidateRow(row: any, rowIndex: number): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const r = rowIndex + 2; // 1-indexed, +1 for header
+
+  if (!row.name || String(row.name).trim() === '') {
+    errors.push({ row: r, field: 'name', message: 'Candidate name is required' });
+  }
+  if (!row.fatherName || String(row.fatherName).trim() === '') {
+    errors.push({ row: r, field: 'fatherName', message: 'Father name is required' });
+  }
+  if (!row.phone || !/^\d{10}$/.test(String(row.phone).trim())) {
+    errors.push({ row: r, field: 'phone', message: 'Phone must be exactly 10 digits' });
+  }
+  if (!row.dob) {
+    errors.push({ row: r, field: 'dob', message: 'Date of birth is required' });
+  } else {
+    const dob = new Date(row.dob);
+    if (isNaN(dob.getTime())) {
+      errors.push({ row: r, field: 'dob', message: 'Invalid date of birth format' });
+    } else {
+      const age = (Date.now() - dob.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+      if (age < 14) errors.push({ row: r, field: 'dob', message: 'Candidate must be at least 14 years old' });
+    }
+  }
+  if (!row.courseCompleted || String(row.courseCompleted).trim() === '') {
+    errors.push({ row: r, field: 'courseCompleted', message: 'Course completed is required' });
+  }
+  if (!row.completionDate) {
+    errors.push({ row: r, field: 'completionDate', message: 'Completion date is required' });
+  } else {
+    const cd = new Date(row.completionDate);
+    if (isNaN(cd.getTime())) {
+      errors.push({ row: r, field: 'completionDate', message: 'Invalid completion date format' });
+    } else if (cd > new Date()) {
+      errors.push({ row: r, field: 'completionDate', message: 'Completion date cannot be in the future' });
+    }
+  }
+  return errors;
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\batches\batch.controller.ts
+```typescript
+import { Request, Response } from 'express';
+import { AuthRequest } from '../../middleware/auth.middleware';
+import prisma from '../../config/database';
+import { createAuditLog } from '../audit/audit.service';
+import { validateCandidateRow, ValidationError } from '../../utils/validators';
+import * as XLSX from 'xlsx';
+import path from 'path';
+import fs from 'fs';
+
+export async function createBatch(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const tc = await prisma.trainingCentre.findUnique({ where: { userId: req.user!.userId } });
+    if (!tc) { res.status(400).json({ error: 'Training centre not found for this user' }); return; }
+    const { title, description, courseType, courseDuration } = req.body;
+    if (!title || !courseType || !courseDuration) {
+      res.status(400).json({ error: 'Title, courseType and courseDuration are required' }); return;
+    }
+    const batch = await prisma.batch.create({
+      data: { trainingCentreId: tc.id, title, description, courseType, courseDuration, status: 'DRAFT' }
+    });
+    await createAuditLog({ userId: req.user!.userId, action: 'CREATE_BATCH', entityType: 'BATCH', entityId: batch.id, batchId: batch.id, newStatus: 'DRAFT' });
+    res.status(201).json(batch);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create batch' });
+  }
+}
+
+export async function getBatches(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const user = req.user!;
+    let where: any = {};
+    if (user.role === 'TRAINING_CENTRE') {
+      const tc = await prisma.trainingCentre.findUnique({ where: { userId: user.userId } });
+      if (!tc) { res.json([]); return; }
+      where = { trainingCentreId: tc.id };
+    } else if (user.role === 'DISTRICT_OFFICER') {
+      where = { status: { in: ['SUBMITTED', 'UNDER_REVIEW', 'RETURNED'] } };
+    } else if (user.role === 'QUALITY_TEAM') {
+      where = { status: 'QUALITY_REVIEW' };
+    } else if (user.role === 'STATE_OFFICE') {
+      where = {}; // see all
+    }
+    const batches = await prisma.batch.findMany({
+      where,
+      include: {
+        trainingCentre: { include: { district: true } },
+        _count: { select: { candidates: true } },
+        districtApprovals: { include: { officer: { select: { name: true, email: true } } } }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+    res.json(batches);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch batches' });
+  }
+}
+
+export async function getBatchById(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const batch = await prisma.batch.findUnique({
+      where: { id: req.params.id },
+      include: {
+        trainingCentre: { include: { district: true, user: { select: { name: true, email: true } } } },
+        candidates: true,
+        districtApprovals: { include: { officer: { select: { name: true, email: true, role: true } } } },
+        qualityReviews: { include: { reviewer: { select: { name: true } } } },
+        stateApprovals: { include: { officer: { select: { name: true } } } },
+        certificates: { include: { candidate: { select: { name: true } } } }
+      }
+    });
+    if (!batch) { res.status(404).json({ error: 'Batch not found' }); return; }
+    res.json(batch);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch batch' });
+  }
+}
+
+export async function uploadCandidates(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const batchId = req.params.id;
+    const batch = await prisma.batch.findUnique({ where: { id: batchId } });
+    if (!batch) { res.status(404).json({ error: 'Batch not found' }); return; }
+    if (!['DRAFT', 'RETURNED'].includes(batch.status)) {
+      res.status(400).json({ error: 'Can only upload to DRAFT or RETURNED batches' }); return;
+    }
+    if (!req.file) { res.status(400).json({ error: 'No file uploaded' }); return; }
+
+    const workbook = XLSX.readFile(req.file.path);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+    if (rows.length === 0) {
+      res.status(422).json({ error: 'File is empty or has no data rows' }); return;
+    }
+
+    // Validate ALL rows first
+    const allErrors: ValidationError[] = [];
+    const phones = new Set<string>();
+    const aadhars = new Set<string>();
+
+    rows.forEach((row, idx) => {
+      const rowErrors = validateCandidateRow(row, idx);
+      allErrors.push(...rowErrors);
+      // Check duplicates within file
+      const phone = String(row.phone || '').trim();
+      if (phone && phones.has(phone)) {
+        allErrors.push({ row: idx + 2, field: 'phone', message: `Duplicate phone number ${phone} in file` });
+      }
+      if (phone) phones.add(phone);
+      const aadhar = String(row.aadhar || '').trim();
+      if (aadhar && aadhars.has(aadhar)) {
+        allErrors.push({ row: idx + 2, field: 'aadhar', message: `Duplicate aadhar ${aadhar} in file` });
+      }
+      if (aadhar) aadhars.add(aadhar);
+    });
+
+    // Clean up uploaded file
+    fs.unlinkSync(req.file.path);
+
+    if (allErrors.length > 0) {
+      res.status(422).json({ errors: allErrors, message: `${allErrors.length} validation error(s) found. No data was saved.` });
+      return;
+    }
+
+    // All valid - save in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Delete existing candidates for this batch (for resubmission)
+      await tx.candidate.deleteMany({ where: { batchId } });
+      // Insert all candidates
+      await tx.candidate.createMany({
+        data: rows.map(row => ({
+          batchId,
+          name: String(row.name).trim(),
+          fatherName: String(row.fatherName).trim(),
+          dob: new Date(row.dob),
+          phone: String(row.phone).trim(),
+          email: row.email ? String(row.email).trim() : null,
+          aadhar: row.aadhar ? String(row.aadhar).trim() : null,
+          courseCompleted: String(row.courseCompleted).trim(),
+          completionDate: new Date(row.completionDate),
+          marks: row.marks ? parseFloat(row.marks) : null,
+          grade: row.grade ? String(row.grade).trim() : null,
+          status: 'PENDING'
+        }))
+      });
+    });
+
+    await createAuditLog({
+      userId: req.user!.userId, action: 'UPLOAD_CANDIDATES', entityType: 'BATCH',
+      entityId: batchId, batchId, remarks: `Uploaded ${rows.length} candidates`
+    });
+    res.json({ message: `Successfully uploaded ${rows.length} candidates`, count: rows.length });
+  } catch (err) {
+    console.error(err);
+    if (req.file) try { fs.unlinkSync(req.file.path); } catch {}
+    res.status(500).json({ error: 'Failed to process file' });
+  }
+}
+
+export async function submitBatch(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const batchId = req.params.id;
+    const batch = await prisma.batch.findUnique({ where: { id: batchId }, include: { _count: { select: { candidates: true } } } });
+    if (!batch) { res.status(404).json({ error: 'Batch not found' }); return; }
+    if (!['DRAFT', 'RETURNED'].includes(batch.status)) {
+      res.status(400).json({ error: 'Batch cannot be submitted in its current status' }); return;
+    }
+    if (batch._count.candidates === 0) {
+      res.status(400).json({ error: 'Cannot submit batch without candidates. Upload candidates first.' }); return;
+    }
+    const updated = await prisma.batch.update({
+      where: { id: batchId },
+      data: { status: 'SUBMITTED', submittedAt: new Date() }
+    });
+    await createAuditLog({
+      userId: req.user!.userId, action: 'SUBMIT_BATCH', entityType: 'BATCH',
+      entityId: batchId, batchId, previousStatus: batch.status, newStatus: 'SUBMITTED'
+    });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to submit batch' });
+  }
+}
+
+export async function getOverdueBatches(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000); // 48 hours
+    const batches = await prisma.batch.findMany({
+      where: {
+        status: { in: ['SUBMITTED', 'UNDER_REVIEW'] },
+        submittedAt: { lt: cutoff }
+      },
+      include: {
+        trainingCentre: { select: { name: true } },
+        _count: { select: { candidates: true } }
+      }
+    });
+    res.json(batches);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch overdue batches' });
+  }
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\batches\batch.routes.ts
+```typescript
+import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
+import { authenticate, authorize } from '../../middleware/auth.middleware';
+import { createBatch, getBatches, getBatchById, uploadCandidates, submitBatch, getOverdueBatches } from './batch.controller';
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(__dirname, '../../../uploads')),
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+});
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+
+const router = Router();
+router.use(authenticate);
+router.get('/', getBatches);
+router.get('/overdue', authorize('STATE_OFFICE', 'DISTRICT_OFFICER'), getOverdueBatches);
+router.get('/:id', getBatchById);
+router.post('/', authorize('TRAINING_CENTRE'), createBatch);
+router.post('/:id/upload', authorize('TRAINING_CENTRE'), upload.single('file'), uploadCandidates);
+router.post('/:id/submit', authorize('TRAINING_CENTRE'), submitBatch);
+export default router;
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\approvals\approval.controller.ts
+```typescript
+import { Response } from 'express';
+import { AuthRequest } from '../../middleware/auth.middleware';
+import prisma from '../../config/database';
+import { createAuditLog } from '../audit/audit.service';
+
+const QUALITY_THRESHOLD = parseInt(process.env.QUALITY_REVIEW_THRESHOLD || '50');
+
+export async function getDistrictBatches(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const batches = await prisma.batch.findMany({
+      where: { status: { in: ['SUBMITTED', 'UNDER_REVIEW'] } },
+      include: {
+        trainingCentre: { include: { district: true } },
+        _count: { select: { candidates: true } },
+        districtApprovals: { include: { officer: { select: { name: true, email: true } } } }
+      },
+      orderBy: { submittedAt: 'asc' }
+    });
+    res.json(batches);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch batches' });
+  }
+}
+
+export async function approveBatch(req: AuthRequest, res: Response): Promise<void> {
+  const { id: batchId } = req.params;
+  const { remarks } = req.body;
+  const officerId = req.user!.userId;
+
+  try {
+    // Use a transaction with serializable isolation to prevent race conditions
+    const result = await prisma.$transaction(async (tx) => {
+      // Lock the batch row
+      const batch = await tx.batch.findUnique({
+        where: { id: batchId },
+        include: { _count: { select: { candidates: true } }, districtApprovals: true }
+      });
+
+      if (!batch) throw new Error('BATCH_NOT_FOUND');
+      if (!['SUBMITTED', 'UNDER_REVIEW'].includes(batch.status)) throw new Error('INVALID_STATUS');
+
+      // Check if this officer already approved
+      const existing = batch.districtApprovals.find(a => a.officerId === officerId);
+      if (existing) throw new Error('ALREADY_APPROVED');
+
+      // Create approval record
+      await tx.districtApproval.create({
+        data: { batchId, officerId, decision: 'APPROVED', remarks: remarks || null }
+      });
+
+      // Count total approvals (including this new one)
+      const approvalCount = batch.districtApprovals.filter(a => a.decision === 'APPROVED').length + 1;
+
+      let newStatus = batch.status;
+      if (approvalCount >= 2) {
+        // Two approvals reached - advance
+        const candidateCount = batch._count.candidates;
+        newStatus = candidateCount >= QUALITY_THRESHOLD ? 'QUALITY_REVIEW' : 'STATE_REVIEW';
+      } else {
+        newStatus = 'UNDER_REVIEW';
+      }
+
+      const updated = await tx.batch.update({
+        where: { id: batchId },
+        data: { status: newStatus as any }
+      });
+      return { batch: updated, approvalCount, newStatus };
+    });
+
+    await createAuditLog({
+      userId: officerId, action: 'APPROVE_BATCH', entityType: 'BATCH', entityId: batchId,
+      batchId, previousStatus: 'UNDER_REVIEW', newStatus: result.newStatus,
+      remarks: `District approval #${result.approvalCount}`
+    });
+
+    res.json({ message: 'Batch approved', batch: result.batch, approvalCount: result.approvalCount });
+  } catch (err: any) {
+    if (err.message === 'BATCH_NOT_FOUND') { res.status(404).json({ error: 'Batch not found' }); return; }
+    if (err.message === 'INVALID_STATUS') { res.status(400).json({ error: 'Batch is not awaiting district approval' }); return; }
+    if (err.message === 'ALREADY_APPROVED') { res.status(409).json({ error: 'You have already approved this batch' }); return; }
+    console.error(err);
+    res.status(500).json({ error: 'Failed to approve batch' });
+  }
+}
+
+export async function rejectBatch(req: AuthRequest, res: Response): Promise<void> {
+  const { id: batchId } = req.params;
+  const { remarks } = req.body;
+  if (!remarks) { res.status(400).json({ error: 'Rejection reason required' }); return; }
+  try {
+    await prisma.$transaction(async (tx) => {
+      const batch = await tx.batch.findUnique({ where: { id: batchId } });
+      if (!batch) throw new Error('NOT_FOUND');
+      await tx.districtApproval.create({
+        data: { batchId, officerId: req.user!.userId, decision: 'REJECTED', remarks }
+      });
+      await tx.batch.update({ where: { id: batchId }, data: { status: 'REJECTED', rejectedAt: new Date() } });
+    });
+    await createAuditLog({
+      userId: req.user!.userId, action: 'REJECT_BATCH', entityType: 'BATCH',
+      entityId: batchId, batchId, newStatus: 'REJECTED', remarks
+    });
+    res.json({ message: 'Batch rejected' });
+  } catch (err: any) {
+    if (err.message === 'NOT_FOUND') { res.status(404).json({ error: 'Batch not found' }); return; }
+    res.status(500).json({ error: 'Failed to reject batch' });
+  }
+}
+
+export async function returnBatch(req: AuthRequest, res: Response): Promise<void> {
+  const { id: batchId } = req.params;
+  const { remarks } = req.body;
+  if (!remarks) { res.status(400).json({ error: 'Return reason required' }); return; }
+  try {
+    const batch = await prisma.batch.findUnique({ where: { id: batchId } });
+    if (!batch) { res.status(404).json({ error: 'Batch not found' }); return; }
+    await prisma.$transaction([
+      prisma.districtApproval.create({
+        data: { batchId, officerId: req.user!.userId, decision: 'RETURNED', remarks }
+      }),
+      prisma.batch.update({
+        where: { id: batchId },
+        data: { status: 'RETURNED', returnReason: remarks }
+      })
+    ]);
+    await createAuditLog({
+      userId: req.user!.userId, action: 'RETURN_BATCH', entityType: 'BATCH',
+      entityId: batchId, batchId, previousStatus: batch.status, newStatus: 'RETURNED', remarks
+    });
+    res.json({ message: 'Batch returned for correction' });
+  } catch {
+    res.status(500).json({ error: 'Failed to return batch' });
+  }
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\approvals\approval.routes.ts
+```typescript
+import { Router } from 'express';
+import { authenticate, authorize } from '../../middleware/auth.middleware';
+import { getDistrictBatches, approveBatch, rejectBatch, returnBatch } from './approval.controller';
+const router = Router();
+router.use(authenticate, authorize('DISTRICT_OFFICER'));
+router.get('/', getDistrictBatches);
+router.post('/:id/approve', approveBatch);
+router.post('/:id/reject', rejectBatch);
+router.post('/:id/return', returnBatch);
+export default router;
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\quality\quality.controller.ts
+```typescript
+import { Response } from 'express';
+import { AuthRequest } from '../../middleware/auth.middleware';
+import prisma from '../../config/database';
+import { createAuditLog } from '../audit/audit.service';
+
+export async function getQualityBatches(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const batches = await prisma.batch.findMany({
+      where: { status: 'QUALITY_REVIEW' },
+      include: { trainingCentre: { include: { district: true } }, _count: { select: { candidates: true } } }
+    });
+    res.json(batches);
+  } catch { res.status(500).json({ error: 'Failed to fetch quality batches' }); }
+}
+
+export async function submitQualityReview(req: AuthRequest, res: Response): Promise<void> {
+  const { id: batchId } = req.params;
+  const { decision, remarks } = req.body;
+  if (!['APPROVED', 'REJECTED'].includes(decision)) {
+    res.status(400).json({ error: 'Decision must be APPROVED or REJECTED' }); return;
+  }
+  try {
+    const batch = await prisma.batch.findUnique({ where: { id: batchId } });
+    if (!batch || batch.status !== 'QUALITY_REVIEW') {
+      res.status(400).json({ error: 'Batch not in quality review' }); return;
+    }
+    const newStatus = decision === 'APPROVED' ? 'STATE_REVIEW' : 'REJECTED';
+    await prisma.$transaction([
+      prisma.qualityReview.create({
+        data: { batchId, reviewerId: req.user!.userId, decision, remarks: remarks || null }
+      }),
+      prisma.batch.update({ where: { id: batchId }, data: { status: newStatus as any } })
+    ]);
+    await createAuditLog({
+      userId: req.user!.userId, action: 'QUALITY_REVIEW', entityType: 'BATCH',
+      entityId: batchId, batchId, previousStatus: 'QUALITY_REVIEW', newStatus, remarks
+    });
+    res.json({ message: `Quality review: ${decision}`, newStatus });
+  } catch { res.status(500).json({ error: 'Failed to submit quality review' }); }
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\quality\quality.routes.ts
+```typescript
+import { Router } from 'express';
+import { authenticate, authorize } from '../../middleware/auth.middleware';
+import { getQualityBatches, submitQualityReview } from './quality.controller';
+const router = Router();
+router.use(authenticate, authorize('QUALITY_TEAM', 'STATE_OFFICE'));
+router.get('/', getQualityBatches);
+router.post('/:id/review', authorize('QUALITY_TEAM'), submitQualityReview);
+export default router;
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\stateApproval\state.controller.ts
+```typescript
+import { Response } from 'express';
+import { AuthRequest } from '../../middleware/auth.middleware';
+import prisma from '../../config/database';
+import { createAuditLog } from '../audit/audit.service';
+import { generateCertificatesForBatch } from '../certificates/certificate.service';
+
+export async function getStateBatches(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const batches = await prisma.batch.findMany({
+      where: { status: 'STATE_REVIEW' },
+      include: { trainingCentre: { include: { district: true } }, _count: { select: { candidates: true } } },
+      orderBy: { updatedAt: 'asc' }
+    });
+    res.json(batches);
+  } catch { res.status(500).json({ error: 'Failed to fetch state batches' }); }
+}
+
+export async function getAllBatches(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const batches = await prisma.batch.findMany({
+      include: {
+        trainingCentre: { include: { district: true } },
+        _count: { select: { candidates: true, certificates: true } }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+    res.json(batches);
+  } catch { res.status(500).json({ error: 'Failed to fetch batches' }); }
+}
+
+export async function finalApprove(req: AuthRequest, res: Response): Promise<void> {
+  const { id: batchId } = req.params;
+  const { remarks } = req.body;
+  try {
+    const batch = await prisma.batch.findUnique({ where: { id: batchId } });
+    if (!batch || batch.status !== 'STATE_REVIEW') {
+      res.status(400).json({ error: 'Batch is not awaiting state approval' }); return;
+    }
+    await prisma.$transaction([
+      prisma.stateApproval.create({
+        data: { batchId, officerId: req.user!.userId, decision: 'APPROVED', remarks: remarks || null }
+      }),
+      prisma.batch.update({ where: { id: batchId }, data: { status: 'APPROVED', approvedAt: new Date() } }),
+      prisma.candidate.updateMany({ where: { batchId }, data: { status: 'APPROVED' } })
+    ]);
+    await createAuditLog({
+      userId: req.user!.userId, action: 'STATE_APPROVE', entityType: 'BATCH',
+      entityId: batchId, batchId, previousStatus: 'STATE_REVIEW', newStatus: 'APPROVED'
+    });
+    // Generate certificates asynchronously
+    generateCertificatesForBatch(batchId, req.user!.userId).catch(console.error);
+    res.json({ message: 'Batch approved. Certificate generation started.' });
+  } catch { res.status(500).json({ error: 'Failed to approve batch' }); }
+}
+
+export async function rejectBatchState(req: AuthRequest, res: Response): Promise<void> {
+  const { id: batchId } = req.params;
+  const { remarks } = req.body;
+  if (!remarks) { res.status(400).json({ error: 'Rejection reason required' }); return; }
+  try {
+    await prisma.$transaction([
+      prisma.stateApproval.create({ data: { batchId, officerId: req.user!.userId, decision: 'REJECTED', remarks } }),
+      prisma.batch.update({ where: { id: batchId }, data: { status: 'REJECTED', rejectedAt: new Date() } })
+    ]);
+    await createAuditLog({
+      userId: req.user!.userId, action: 'STATE_REJECT', entityType: 'BATCH',
+      entityId: batchId, batchId, newStatus: 'REJECTED', remarks
+    });
+    res.json({ message: 'Batch rejected' });
+  } catch { res.status(500).json({ error: 'Failed to reject batch' }); }
+}
+
+export async function cancelCertificate(req: AuthRequest, res: Response): Promise<void> {
+  const { certificateId } = req.params;
+  const { reason } = req.body;
+  if (!reason) { res.status(400).json({ error: 'Cancellation reason required' }); return; }
+  try {
+    const cert = await prisma.certificate.findUnique({ where: { id: certificateId } });
+    if (!cert) { res.status(404).json({ error: 'Certificate not found' }); return; }
+    if (cert.status === 'CANCELLED') { res.status(400).json({ error: 'Certificate already cancelled' }); return; }
+    await prisma.$transaction([
+      prisma.certificate.update({
+        where: { id: certificateId },
+        data: { status: 'CANCELLED', cancelledAt: new Date(), cancelReason: reason }
+      }),
+      prisma.candidate.update({ where: { id: cert.candidateId }, data: { status: 'CANCELLED' } })
+    ]);
+    await createAuditLog({
+      userId: req.user!.userId, action: 'CANCEL_CERTIFICATE', entityType: 'CERTIFICATE',
+      entityId: certificateId, batchId: cert.batchId, remarks: reason
+    });
+    res.json({ message: 'Certificate cancelled successfully' });
+  } catch { res.status(500).json({ error: 'Failed to cancel certificate' }); }
+}
+
+export async function getDashboardStats(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const [totalBatches, pendingBatches, approvedBatches, totalCerts, activeCerts, overdueBatches] = await Promise.all([
+      prisma.batch.count(),
+      prisma.batch.count({ where: { status: { in: ['SUBMITTED', 'UNDER_REVIEW', 'QUALITY_REVIEW', 'STATE_REVIEW'] } } }),
+      prisma.batch.count({ where: { status: 'APPROVED' } }),
+      prisma.certificate.count(),
+      prisma.certificate.count({ where: { status: 'ACTIVE' } }),
+      prisma.batch.count({ where: { status: { in: ['SUBMITTED', 'UNDER_REVIEW'] }, submittedAt: { lt: new Date(Date.now() - 48*60*60*1000) } } })
+    ]);
+    res.json({ totalBatches, pendingBatches, approvedBatches, totalCerts, activeCerts, overdueBatches });
+  } catch { res.status(500).json({ error: 'Failed to get stats' }); }
+}
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\stateApproval\state.routes.ts
+```typescript
+import { Router } from 'express';
+import { authenticate, authorize } from '../../middleware/auth.middleware';
+import { getStateBatches, getAllBatches, finalApprove, rejectBatchState, cancelCertificate, getDashboardStats } from './state.controller';
+const router = Router();
+router.use(authenticate, authorize('STATE_OFFICE'));
+router.get('/batches', getStateBatches);
+router.get('/all-batches', getAllBatches);
+router.get('/stats', getDashboardStats);
+router.post('/batches/:id/approve', finalApprove);
+router.post('/batches/:id/reject', rejectBatchState);
+router.post('/certificates/:certificateId/cancel', cancelCertificate);
+export default router;
+```
+
+### File: C:\Users\Admin\.gemini\antigravity\scratch\certiflow\backend\src\modules\certificates\certificate.service.ts
+```typescript
+import prisma from '../../config/database';
+import PDFDocument from 'pdfkit';
+import QRCode from 'qrcode';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import fs from 'fs';
+
+function generateCertNumber(): string {
+  const year = new Date().getFullYear();
+  const random = Math.random().toString(36).substring(2, 10).toUpperCase();
+  return `CERT-${year}-${random}`;
+}
+
+export async function generateCertificatesForBatch(batchId: string, issuedByUserId: string): Promise<void> {
+  const batch = await prisma.batch.findUnique({
+    where: { id: batchId },
+    include: {
+      candidates: true,
+      trainingCentre: true
+    }
+  });
+  if (!batch) return;
+
+  const certDir = path.join(process.cwd(), 'certificates');
+  if (!fs.existsSync(certDir)) fs.mkdirSync(certDir, { recursive: true });
+
+  for (const candidate of batch.candidates) {
+    // Idempotency: skip if certificate already exists
+    const existing = await prisma.certificate.findUnique({ where: { candidateId: candidate.id } });
+    if (existing) continue;
+
+    const certNumber = generateCertNumber();
+    const certId = uuidv4();
+    const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify/${certNumber}`;
+
+    // Generate QR code
+    const qrDataUrl = await QRCode.toDataURL(verifyUrl);
+
+    // Generate PDF
+    const pdfPath = path.join(certDir, `${certNumber}.pdf`);
+    await new Promise<void>((resolve, reject) => {
+      const doc = new PDFDocument({ size: 'A4', layout: 'landscape' });
+      const stream = fs.createWriteStream(pdfPath);
+      doc.pipe(stream);
+
+      // Background
+      doc.rect(0, 0, doc.page.width, doc.page.height).fill('#f0f8ff');
+      
+      // Border
+      doc.rect(20, 20, doc.page.width - 40, doc.page.height - 40)
+         .lineWidth(3).stroke('#1e40af');
+
+      // Title
+      doc.fillColor('#1e40af').fontSize(36).font('Helvetica-Bold')
+         .text('CERTIFICATE OF COMPLETION', 0, 60, { align: 'center' });
+
+      // Subtitle
+      doc.fillColor('#374151').fontSize(16).font('Helvetica')
+         .text('This is to certify that', 0, 120, { align: 'center' });
+
+      // Candidate name
+      doc.fillColor('#111827').fontSize(28).font('Helvetica-Bold')
+         .text(candidate.name, 0, 150, { align: 'center' });
+
+      doc.fillColor('#374151').fontSize(14).font('Helvetica')
+         .text(`S/o D/o: ${candidate.fatherName}`, 0, 195, { align: 'center' });
+
+      doc.text(`has successfully completed the course`, 0, 225, { align: 'center' });
+
+      // Course name
+      doc.fillColor('#1e40af').fontSize(20).font('Helvetica-Bold')
+         .text(candidate.courseCompleted, 0, 250, { align: 'center' });
+
+      doc.fillColor('#374151').fontSize(14).font('Helvetica')
+         .text(`at ${batch.trainingCentre.name}`, 0, 285, { align: 'center' });
+
+      doc.text(`Completion Date: ${candidate.completionDate.toLocaleDateString('en-IN')}`, 0, 310, { align: 'center' });
+
+      if (candidate.grade) {
+        doc.text(`Grade: ${candidate.grade}${candidate.marks ? ` (${candidate.marks}%)` : ''}`, 0, 335, { align: 'center' });
+      }
+
+      // Certificate ID
+      doc.fillColor('#6b7280').fontSize(10)
+         .text(`Certificate ID: ${certNumber}`, 0, 400, { align: 'center' });
+
+      // QR code image
+      const qrBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
+      doc.image(qrBuffer, doc.page.width - 130, doc.page.height - 130, { width: 100, height: 100 });
+
+      doc.end();
+      stream.on('finish', resolve);
+      stream.on('error', reject);
+    });
+
+    // Save certificate to DB
+    const cert = await prisma.certificate.create({
+      data: {
+        id: certId,
+        candidateId: candidate.id,
+        batchId,
+        certificateNumber: certNumber,
+        pdfPath: `certificates/${certNumber}.pdf`,
+        qrCode: qrDataUrl,
+        status: 'ACTIVE'
+      }
+    });
+
+    // Update candidate status
+    await prisma.candidate.update({
+      where: { id: candidate.id },
+      data: { status: 'CERTIFIED', certificateId: cert.id }
+    });
+
+    // Queue notification (simulated)
+    sendWhatsAppNotification(candidate, cert).catch(console.error);
+  }
+}
+
+async function sendWhatsAppNotification(candidate: any, certificate: any): Promise<void> {
+  // Check for existing notification (idempotency)
+  const existing = await prisma.notification.findUnique({
+    where: { candidateId_channel: { candidateId: candidate.id, channel: 'WHATSAPP' } }
+  });
+  if (existing?.status === 'SENT') return;
+
+  let notif = existing;
+  if (!notif) {
+    notif = await prisma.notification.create({
+      data: { candidateId: candidate.id, certificateId: certificate.id, channel: 'WHATSAPP', status: 'PENDING', attempts: 0 }
+    });
+  }
+
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await prisma.notification.update({
+        where: { id: notif!.id },
+        data: { status: 'RETRYING', attempts: attempt, lastAttempt: new Date() }
+      });
+
+      // Simulate WhatsApp delivery
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 1500 + 500));
+      const outcomes = ['success', 'success', 'success', 'success', 'failed', 'timeout'];
+      const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
+
+      if (outcome === 'timeout') throw new Error('
+<truncated 15973 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need.
+

@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  TRAINING_CENTRE
+  DISTRICT_OFFICER
+  QUALITY_TEAM
+  STATE_OFFICE
+  CANDIDATE
+}
+
+enum BatchStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  QUALITY_REVIEW
+  STATE_REVIEW
+  APPROVED
+  REJECTED
+  RETURNED
+  CANCELLED
+}
+
+enum CandidateStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CERTIFIED
+  CANCELLED
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  RETURNED
+}
+
+enum CertificateStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  RETRYING
+}
+
+model User {
+  id                String           @id @default(uuid())
+  email             String           @unique
+  password          String
+  name              String
+  role              UserRole
+  districtId        String?
+  district          District?        @relation(fields: [districtId], references: [id])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  trainingCentre    TrainingCentre?
+  districtApprovals DistrictApproval[]
+  qualityReviews    QualityReview[]
+  stateApprovals    StateApproval[]
+  auditLogs         AuditLog[]
+}
+
+model District {
+  id              String           @id @default(uuid())
+  name            String
+  code            String           @unique
+  createdAt       DateTime         @default(now())
+  users           User[]
+  trainingCentres TrainingCentre[]
+}
+
+model TrainingCentre {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  name       String
+  code       String   @unique
+  districtId String
+  district   District @relation(fields: [districtId], references: [id])
+  address    String?
+  createdAt  DateTime @default(now())
+  batches    Batch[]
+}
+
+model Batch {
+  id                String            @id @default(uuid())
+  trainingCentreId  String
+  trainingCentre    TrainingCentre    @relation(fields: [trainingCentreId], references: [id])
+  title             String
+  description       String?
+  courseType        String
+  courseDuration    String
+  status            BatchStatus       @default(DRAFT)
+  submittedAt       DateTime?
+  approvedAt        DateTime?
+  rejectedAt        DateTime?
+  returnReason      String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  candidates        Candidate[]
+  districtApprovals DistrictApproval[]
+  qualityReviews    QualityReview[]
+  stateApprovals    StateApproval[]
+  certificates      Certificate[]
+  auditLogs         AuditLog[]
+}
+
+model Candidate {
+  id              String          @id @default(uuid())
+  batchId         String
+  batch           Batch           @relation(fields: [batchId], references: [id])
+  name            String
+  fatherName      String
+  dob             DateTime
+  phone           String
+  email           String?
+  aadhar          String?
+  courseCompleted String
+  completionDate  DateTime
+  marks           Float?
+  grade           String?
+  status          CandidateStatus @default(PENDING)
+  certificateId   String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  certificate     Certificate?
+  notifications   Notification[]
+}
+
+model DistrictApproval {
+  id        String           @id @default(uuid())
+  batchId   String
+  batch     Batch            @relation(fields: [batchId], references: [id])
+  officerId String
+  officer   User             @relation(fields: [officerId], references: [id])
+  decision  ApprovalDecision
+  remarks   String?
+  createdAt DateTime         @default(now())
+
+  @@unique([batchId, officerId])
+}
+
+model QualityReview {
+  id         String   @id @default(uuid())
+  batchId    String   @unique
+  batch      Batch    @relation(fields: [batchId], references: [id])
+  reviewerId String
+  reviewer   User     @relation(fields: [reviewerId], references: [id])
+  decision   String
+  remarks    String?
+  createdAt  DateTime @default(now())
+}
+
+model StateApproval {
+  id        String   @id @default(uuid())
+  batchId   String
+  batch     Batch    @relation(fields: [batchId], references: [id])
+  officerId String
+  officer   User     @relation(fields: [officerId], references: [id])
+  decision  String
+  remarks   String?
+  createdAt DateTime @default(now())
+}
+
+model Certificate {
+  id                String            @id @default(uuid())
+  candidateId       String            @unique
+  candidate         Candidate         @relation(fields: [candidateId], references: [id])
+  batchId           String
+  batch             Batch             @relation(fields: [batchId], references: [id])
+  certificateNumber String            @unique
+  pdfPath           String?
+  qrCode            String?
+  issuedAt          DateTime          @default(now())
+  status            CertificateStatus @default(ACTIVE)
+  cancelledAt       DateTime?
+  cancelReason      String?
+  notifications     Notification[]
+}
+
+model Notification {
+  id            String             @id @default(uuid())
+  candidateId   String
+  candidate     Candidate          @relation(fields: [candidateId], references: [id])
+  certificateId String
+  certificate   Certificate        @relation(fields: [certificateId], references: [id])
+  channel       String             @default("WHATSAPP")
+  status        NotificationStatus @default(PENDING)
+  attempts      Int                @default(0)
+  lastAttempt   DateTime?
+  deliveredAt   DateTime?
+  createdAt     DateTime           @default(now())
+
+  @@unique([candidateId, channel])
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  action         String
+  entityType     String
+  entityId       String
+  batchId        String?
+  batch          Batch?   @relation(fields: [batchId], references: [id])
+  previousStatus String?
+  newStatus      String?
+  remarks        String?
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+}

@@ -1,0 +1,6 @@
+name,fatherName,dob,phone,email,aadhar,courseCompleted,completionDate,marks,grade
+John Valid,Father Valid,1998-05-14,9876543001,john@example.com,123456780001,Computer Hardware Technician,2024-10-31,82,A
+,Missing Name Father,1999-03-22,9876543002,row2@example.com,123456780002,Computer Hardware Technician,2024-10-31,76,B
+Jane Good,Father Good,invalid-date,9876543003,jane@example.com,123456780003,Computer Hardware Technician,2024-10-31,65,C
+Tom Fine,Father Fine,2000-01-15,BADPHONE,tom@example.com,123456780004,Computer Hardware Technician,2024-10-31,70,B
+Alice OK,Father OK,2001-06-20,9876543001,alice@example.com,123456780005,Computer Hardware Technician,2024-10-31,88,A
