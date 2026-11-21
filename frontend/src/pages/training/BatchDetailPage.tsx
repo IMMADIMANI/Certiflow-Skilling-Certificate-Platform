@@ -77,8 +77,81 @@ export default function BatchDetailPage() {
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'certiflow_template.csv';
+    a.download = 'certiflow_valid_sample.csv';
     a.click();
+    toast.success('Downloaded sample CSV to your Downloads folder!');
+  };
+
+  const download60Candidates = () => {
+    const rows = [
+      'name,fatherName,dob,phone,email,aadhar,courseCompleted,completionDate,marks,grade',
+      'Aarav Sharma,Ramesh Sharma,1998-05-14,9876543201,aarav.sharma@example.com,123456789001,Web Development,2024-10-31,82,A',
+      'Priya Verma,Suresh Verma,1999-03-22,9876543202,priya.verma@example.com,123456789002,Web Development,2024-10-31,76,B',
+      'Rahul Singh,Mohan Singh,2000-07-11,9876543203,rahul.singh@example.com,123456789003,Web Development,2024-10-31,91,A+',
+      'Anjali Gupta,Dinesh Gupta,1998-12-05,9876543204,anjali.gupta@example.com,123456789004,Web Development,2024-10-31,65,C',
+      'Vikram Patel,Hemant Patel,1997-08-30,9876543205,vikram.patel@example.com,123456789005,Web Development,2024-10-31,88,A',
+      'Sneha Reddy,Naresh Reddy,2001-01-17,9876543206,sneha.reddy@example.com,123456789006,Web Development,2024-10-31,73,B',
+      'Amit Kumar,Rajesh Kumar,1999-06-25,9876543207,amit.kumar@example.com,123456789007,Web Development,2024-10-31,55,D',
+      'Pooja Joshi,Vinod Joshi,2000-09-08,9876543208,pooja.joshi@example.com,123456789008,Web Development,2024-10-31,69,C',
+      'Arun Nair,Krishnan Nair,1998-02-14,9876543209,arun.nair@example.com,123456789009,Web Development,2024-10-31,84,A',
+      'Meena Pillai,Gopalan Pillai,2001-11-20,9876543210,meena.pillai@example.com,123456789010,Web Development,2024-10-31,78,B',
+      'Deepak Yadav,Santosh Yadav,1997-04-16,9876543211,deepak.yadav@example.com,123456789011,Web Development,2024-10-31,93,A+',
+      'Ritu Saxena,Ashok Saxena,1999-07-29,9876543212,ritu.saxena@example.com,123456789012,Web Development,2024-10-31,61,C',
+      'Suresh Mishra,Ramakant Mishra,2000-10-03,9876543213,suresh.mishra@example.com,123456789013,Web Development,2024-10-31,87,A',
+      'Kavita Dixit,Jagdish Dixit,1998-01-28,9876543214,kavita.dixit@example.com,123456789014,Web Development,2024-10-31,72,B',
+      'Nitin Agarwal,Prakash Agarwal,2001-05-19,9876543215,nitin.agarwal@example.com,123456789015,Web Development,2024-10-31,58,D',
+      'Swati Chaudhary,Vinay Chaudhary,1999-08-07,9876543216,swati.chaudhary@example.com,123456789016,Web Development,2024-10-31,80,A',
+      'Mohit Tripathi,Sunil Tripathi,1998-03-11,9876543217,mohit.tripathi@example.com,123456789017,Web Development,2024-10-31,66,C',
+      'Shalini Pandey,Narendra Pandey,2000-06-23,9876543218,shalini.pandey@example.com,123456789018,Web Development,2024-10-31,75,B',
+      'Alok Srivastava,Girish Srivastava,1997-09-15,9876543219,alok.srivastava@example.com,123456789019,Web Development,2024-10-31,89,A',
+      'Neha Tandon,Arvind Tandon,2001-12-01,9876543220,neha.tandon@example.com,123456789020,Web Development,2024-10-31,77,B',
+      'Gaurav Shukla,Madan Shukla,1999-02-18,9876543221,gaurav.shukla@example.com,123456789021,Web Development,2024-10-31,94,A+',
+      'Poonam Rathore,Bharat Rathore,1998-05-27,9876543222,poonam.rathore@example.com,123456789022,Web Development,2024-10-31,63,C',
+      'Hemant Jain,Sushil Jain,2000-08-14,9876543223,hemant.jain@example.com,123456789023,Web Development,2024-10-31,86,A',
+      'Rashmi Dubey,Ramesh Dubey,1999-11-30,9876543224,rashmi.dubey@example.com,123456789024,Web Development,2024-10-31,70,B',
+      'Ashish Tiwari,Bhupesh Tiwari,1997-01-09,9876543225,ashish.tiwari@example.com,123456789025,Web Development,2024-10-31,52,D',
+      'Shweta Kapoor,Ajay Kapoor,2001-04-22,9876543226,shweta.kapoor@example.com,123456789026,Web Development,2024-10-31,81,A',
+      'Rohit Vyas,Prakash Vyas,1998-07-18,9876543227,rohit.vyas@example.com,123456789027,Web Development,2024-10-31,67,C',
+      'Preeti Bhatt,Giridhar Bhatt,2000-10-26,9876543228,preeti.bhatt@example.com,123456789028,Web Development,2024-10-31,74,B',
+      'Ajay Pandya,Mahesh Pandya,1999-01-05,9876543229,ajay.pandya@example.com,123456789029,Web Development,2024-10-31,90,A+',
+      'Nisha Rawat,Rajendra Rawat,1998-04-13,9876543230,nisha.rawat@example.com,123456789030,Web Development,2024-10-31,78,B',
+      'Vikas Chauhan,Govind Chauhan,2001-07-07,9876543231,vikas.chauhan@example.com,123456789031,Web Development,2024-10-31,85,A',
+      'Sunita Bhardwaj,Daya Bhardwaj,1997-10-21,9876543232,sunita.bhardwaj@example.com,123456789032,Web Development,2024-10-31,59,D',
+      'Sanjay Ojha,Ramchandra Ojha,1999-03-16,9876543233,sanjay.ojha@example.com,123456789033,Web Development,2024-10-31,83,A',
+      'Vandana Kulkarni,Shankar Kulkarni,2000-06-04,9876543234,vandana.kulkarni@example.com,123456789034,Web Development,2024-10-31,71,B',
+      'Manoj Bose,Pradip Bose,1998-09-28,9876543235,manoj.bose@example.com,123456789035,Web Development,2024-10-31,96,A+',
+      'Archana Sen,Tapan Sen,2001-12-17,9876543236,archana.sen@example.com,123456789036,Web Development,2024-10-31,64,C',
+      'Sunil Ghosh,Bibhas Ghosh,1997-02-24,9876543237,sunil.ghosh@example.com,123456789037,Web Development,2024-10-31,88,A',
+      'Renu Das,Mrinal Das,1999-05-10,9876543238,renu.das@example.com,123456789038,Web Development,2024-10-31,76,B',
+      'Kapil Sarkar,Debasish Sarkar,2000-08-21,9876543239,kapil.sarkar@example.com,123456789039,Web Development,2024-10-31,53,D',
+      'Manju Roy,Subrata Roy,1998-11-13,9876543240,manju.roy@example.com,123456789040,Web Development,2024-10-31,79,B',
+      'Tarun Biswas,Nirmal Biswas,2001-02-06,9876543241,tarun.biswas@example.com,123456789041,Web Development,2024-10-31,92,A+',
+      'Jyoti Mukherjee,Suresh Mukherjee,1997-05-30,9876543242,jyoti.mukherjee@example.com,123456789042,Web Development,2024-10-31,68,C',
+      'Dinesh Chatterjee,Ratan Chatterjee,1999-08-15,9876543243,dinesh.chatterjee@example.com,123456789043,Web Development,2024-10-31,84,A',
+      'Kamla Dey,Probhat Dey,2000-11-29,9876543244,kamla.dey@example.com,123456789044,Web Development,2024-10-31,73,B',
+      'Rajiv Basu,Ashim Basu,1998-01-22,9876543245,rajiv.basu@example.com,123456789045,Web Development,2024-10-31,56,D',
+      'Sushmita Haldar,Nitai Haldar,2001-04-08,9876543246,sushmita.haldar@example.com,123456789046,Web Development,2024-10-31,87,A',
+      'Biplab Majumdar,Shyamal Majumdar,1997-07-01,9876543247,biplab.majumdar@example.com,123456789047,Web Development,2024-10-31,65,C',
+      'Sharmila Pal,Gopal Pal,1999-10-19,9876543248,sharmila.pal@example.com,123456789048,Web Development,2024-10-31,77,B',
+      'Arnab Ghoshal,Tapas Ghoshal,2000-01-31,9876543249,arnab.ghoshal@example.com,123456789049,Web Development,2024-10-31,91,A+',
+      'Mousumi Banerjee,Ranjit Banerjee,1998-04-24,9876543250,mousumi.banerjee@example.com,123456789050,Web Development,2024-10-31,74,B',
+      'Partha Mitra,Ashok Mitra,2001-07-16,9876543251,partha.mitra@example.com,123456789051,Web Development,2024-10-31,86,A',
+      'Nilufar Islam,Jamal Islam,1997-10-09,9876543252,nilufar.islam@example.com,123456789052,Web Development,2024-10-31,62,C',
+      'Sabbir Ahmed,Faruk Ahmed,1999-01-27,9876543253,sabbir.ahmed@example.com,123456789053,Web Development,2024-10-31,80,A',
+      'Fatema Begum,Rafiqul Hossain,2000-04-15,9876543254,fatema.begum@example.com,123456789054,Web Development,2024-10-31,69,C',
+      'Rakibul Hasan,Nurul Hasan,1998-07-03,9876543255,rakibul.hasan@example.com,123456789055,Web Development,2024-10-31,95,A+',
+      'Sharmin Sultana,Abdul Karim,2001-10-27,9876543256,sharmin.sultana@example.com,123456789056,Web Development,2024-10-31,72,B',
+      'Mizan Molla,Rezaul Molla,1997-01-20,9876543257,mizan.molla@example.com,123456789057,Web Development,2024-10-31,83,A',
+      'Laxmi Devi,Ratan Lal,1999-04-08,9876543258,laxmi.devi@example.com,123456789058,Web Development,2024-10-31,57,D',
+      'Parveen Akhtar,Mohammad Akhtar,2000-07-24,9876543259,parveen.akhtar@example.com,123456789059,Web Development,2024-10-31,76,B',
+      'Zainab Hussain,Gulam Hussain,1998-11-06,9876543260,zainab.hussain@example.com,123456789060,Web Development,2024-10-31,89,A',
+    ].join('\n');
+    const blob = new Blob([rows], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'sample_60_candidates.csv';
+    a.click();
+    toast.success('Downloaded 60-candidate CSV to your Downloads folder!');
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" /></div>;
@@ -124,11 +197,16 @@ export default function BatchDetailPage() {
       {/* Upload Section */}
       {canUpload && (
         <div className="card mb-5">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <h2 className="text-lg font-semibold text-gray-900">Upload Candidates</h2>
-            <button onClick={downloadTemplate} className="btn-secondary text-sm">
-              <Download className="w-4 h-4" /> Download Template
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={downloadTemplate} className="btn-secondary text-xs">
+                <Download className="w-3.5 h-3.5" /> Sample (3 rows)
+              </button>
+              <button onClick={download60Candidates} className="btn-primary text-xs bg-emerald-600 hover:bg-emerald-700">
+                <Download className="w-3.5 h-3.5" /> 60 Candidates CSV (Scenario 3)
+              </button>
+            </div>
           </div>
 
           <div {...getRootProps()} className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
