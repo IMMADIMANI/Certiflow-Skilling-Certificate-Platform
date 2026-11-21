@@ -133,13 +133,6 @@ To test the entire governance workflow without typing credentials, reviewers can
 ![Production Vercel Deployment](./docs/images/vercel_env_setup.png)
 *Vercel deployment linking React frontend to the Render Cloud API via `VITE_API_URL`.*
 
-### Relational Database Architecture (PostgreSQL on Neon)
-![PostgreSQL Architecture](./docs/images/postgres_database.png)
-*PostgreSQL schema enforcing foreign key relations, unique indices, and append-only audit trails.*
-
----
-
-## 🛠️ Tech Stack & Directory Structure
 
 ```
 certiflow/
