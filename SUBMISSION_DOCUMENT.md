@@ -1,34 +1,34 @@
 # CertiFlow – Skilling Certificate Issuance & Verification Platform
-## Official Hackathon Final Submission Document & Technical Dossier
+## Official Hackathon Final Submission Dossier & Technical Report
 
 ---
 
 ### Executive Summary
 
-CertiFlow is a decentralized, digital government governance platform designed to replace legacy spreadsheet submissions in skill development programs. It provides strict row-by-row schema validation, multi-officer consensus approval, automated quality review for high-volume batches, cryptographically verifiable PDF certificates with QR codes, simulated asynchronous notification dispatch, and tamper-proof public verification without requiring authentication.
+**CertiFlow** is a centralized, digital government governance platform designed to replace vulnerable paper credentials and manual spreadsheet submissions in national skill development programs. It provides strict row-by-row schema validation, multi-officer consensus approval, automated quality review for high-volume batches, cryptographically verifiable PDF certificates with QR codes, simulated asynchronous notification dispatch, and tamper-proof public verification without requiring authentication.
 
 ---
 
 ### 1. Live Deployment & Repository Links
 
-* **Live Web Application (Frontend):** https://certiflow-skilling-platform.vercel.app
-* **Public Certificate Verifier:** https://certiflow-skilling-platform.vercel.app/verify
-* **Cloud API Backend:** https://certiflow-skilling-certificate-platform.onrender.com
-* **GitHub Repository:** https://github.com/IMMADIMANI/Certiflow-Skilling-Certificate-Platform
+* **Live Web Application (Frontend):** [https://certiflow-skilling-platform.vercel.app](https://certiflow-skilling-platform.vercel.app)
+* **Public Certificate Verifier:** [https://certiflow-skilling-platform.vercel.app/verify](https://certiflow-skilling-platform.vercel.app/verify)
+* **Cloud API Backend:** [https://certiflow-skilling-certificate-platform.onrender.com](https://certiflow-skilling-certificate-platform.onrender.com)
+* **GitHub Repository:** [https://github.com/IMMADIMANI/Certiflow-Skilling-Certificate-Platform](https://github.com/IMMADIMANI/Certiflow-Skilling-Certificate-Platform)
 * **Cloud Database:** PostgreSQL 16 on Neon.tech (Multi-AZ Serverless)
 
 ---
 
-### 2. Reviewer & Demo Accounts
+### 2. Reviewer & Judge Demo Credentials
 
-All demo accounts use password: **`password123`**
+All accounts use password: **`password123`**
 
-| Role | Name | Email | Jurisdiction / Responsibility |
+| Role | Officer Name | Login Email | Primary Governance Responsibility |
 |---|---|---|---|
 | **Training Centre** | Anika Singh | `anika@certiflow.in` | Batch creation, CSV uploads, error corrections |
-| **District Officer** | Dev Sharma | `dev@certiflow.in` | North District Officer (Review 1/2) |
-| **District Officer** | Meera Patel | `meera@certiflow.in` | South District Officer (Review 2/2) |
-| **District Officer** | Kabir Khan | `kabir@certiflow.in` | East District Officer |
+| **District Officer 1** | Dev Sharma | `dev@certiflow.in` | District review 1/2 (North District) |
+| **District Officer 2** | Meera Patel | `meera@certiflow.in` | District review 2/2 (South District) |
+| **District Officer 3** | Kabir Khan | `kabir@certiflow.in` | Alternate District Officer (East District) |
 | **Quality Team** | Neha Gupta | `neha@certiflow.in` | Scrutiny for batches with ≥50 candidates |
 | **State Office** | Farah Irani | `farah@certiflow.in` | Final approval, certificate issuance, revocation |
 | **Public Verifier** | Anonymous | *No login needed* | Anyone verifying credential via QR code |
@@ -37,39 +37,34 @@ All demo accounts use password: **`password123`**
 
 ---
 
-### 3. Mandatory Technology Stack
+### 3. Live Application Interface Proof
 
-* **Frontend:** React.js 18, Vite, TypeScript, Tailwind CSS, Lucide Icons, React Router DOM, Axios
-* **Backend:** Node.js v24, Express.js, TypeScript
-* **Database & ORM:** PostgreSQL 16, Prisma ORM (v5.22.0) with automated migrations
-* **Authentication & Authorization:** JWT (HS256), Role-Based Access Control (RBAC) middleware
-* **Document Engine:** PDFKit (vector certificate generation), QRCode (tamper-proof verification links)
-* **Realtime & Event Queue:** Socket.IO, BullMQ architecture with graceful degradation
-* **Containerization:** Docker, Docker Compose (`postgres`, `redis`, `backend`, `frontend`)
+![Figure 1: Production CertiFlow Dashboard](./docs/images/dashboard_live.png)
+*Figure 1: Production CertiFlow Dashboard featuring live WebSocket queue status, 1-Click Role Switcher, real-time KPI metric cards, and recent batch queues.*
 
 ---
 
-### 4. Implementation Proof of the Six Hackathon Scenarios
+### 4. Implementation Proof of the Six Critical Hackathon Scenarios
 
 #### Scenario 1: Invalid Spreadsheet Validation (Zero-Partial-Save)
 * **Problem:** Training centres often upload corrupt files with missing names, invalid phone numbers, and duplicate entries.
-* **Implementation:** `batch.controller.ts` runs `validateCandidateRow()`. Every row is checked against required field rules, regex formats, and duplicate checks within the batch.
-* **Atomic Guarantee:** If even one row fails, the entire upload is aborted with HTTP 422. Exact row numbers and field errors are returned. Zero records are saved to PostgreSQL.
+* **Implementation:** `backend/src/modules/batches/batch.controller.ts` runs `validateCandidateRow()`. Every row is checked against required field rules, regex formats, and duplicate checks within the batch.
+* **Observed Proof:** When `sample_invalid_rows.csv` is uploaded, 6 validation errors are flagged with exact row numbers (e.g. Row 2: Candidate name required, Row 2: Father name required, Row 4: Invalid phone). Zero records are saved to PostgreSQL. Strict transaction rollback guarantees data atomicity.
 
 #### Scenario 2: Dual District Officer Approval (Consensus Governance)
 * **Problem:** Single-officer approvals allow collusion and lack administrative cross-checking.
-* **Implementation:** `approval.controller.ts` executes within an atomic `prisma.$transaction()`. A unique composite index `@@unique([batchId, officerId])` prevents double-voting.
-* **State Transition:** The batch remains in `UNDER_REVIEW` until `approvedCount >= 2` before advancing to `STATE_REVIEW` (or `QUALITY_REVIEW`).
+* **Implementation:** `backend/src/modules/approvals/approval.controller.ts` executes within an atomic `prisma.$transaction()`. A unique composite index `@@unique([batchId, officerId])` prevents double-voting.
+* **Observed Proof:** When Dev Sharma approves, approval count increments to 1/2 and status remains `UNDER_REVIEW`. Only when Meera Patel records the 2nd distinct approval does the workflow transition to `STATE_REVIEW` (or `QUALITY_REVIEW`). Attempting duplicate approval by the same officer raises HTTP 409 conflict.
 
 #### Scenario 3: 60-Candidate Batch & Quality Team Review
 * **Problem:** Large batches represent significant government outlay and require additional audit checks.
 * **Implementation:** Configurable threshold (`QUALITY_REVIEW_THRESHOLD=50`). Batches with ≥50 candidates are automatically intercepted and routed to `QUALITY_REVIEW`.
-* **Outcome:** Neha Gupta records a formal quality review decision. Upon final State approval, exactly 60 unique certificates and QR verification tokens are generated without duplicates.
+* **Observed Proof:** Neha Gupta inspects student marks and records quality approval. Following State Office final authorization, the PDF generator produces exactly 60 unique certificates and QR verification tokens without duplicates.
 
 #### Scenario 4: Certificate Revocation & Public Verification
 * **Problem:** Revoked or fraudulent credentials must immediately be recognizable to employers.
-* **Implementation:** State officers can cancel issued certificates with an audit reason. The record is flagged `status = CANCELLED`.
-* **Outcome:** The public verification endpoint `/api/verify/:id` immediately reflects the cancellation with prominent red visual alerts, preventing the acceptance of forged or cancelled certificates.
+* **Implementation:** State officers can cancel issued credentials via `state.controller.ts`. The certificate record is flagged `status = CANCELLED`, recording `cancelledAt` and `cancelReason`.
+* **Observed Proof:** The public verification endpoint `/api/verify/:id` immediately reflects the cancellation with prominent red visual alerts, preventing the acceptance of revoked credentials.
 
 #### Scenario 5: Delayed Officer Approval Detection (>48h)
 * **Problem:** Batches stuck with district officers delay student employment and create bureaucratic bottlenecks.
@@ -81,21 +76,79 @@ All demo accounts use password: **`password123`**
 
 ---
 
-### 5. Database Schema & Data Models
+### 5. Cloud Deployment & Live Infrastructure Proof
 
-1. **User:** `id`, `email`, `password`, `name`, `role`, `districtId`, `createdAt`
-2. **District:** `id`, `name`, `code`
-3. **TrainingCentre:** `id`, `userId`, `name`, `code`, `districtId`, `address`
-4. **Batch:** `id`, `trainingCentreId`, `title`, `courseType`, `courseDuration`, `status`, `submittedAt`, `approvedAt`, `returnReason`
-5. **Candidate:** `id`, `batchId`, `name`, `fatherName`, `dob`, `phone`, `email`, `aadhar`, `courseCompleted`, `marks`, `grade`, `status`
-6. **DistrictApproval:** `id`, `batchId`, `officerId`, `decision`, `remarks`, `createdAt` (Unique: `[batchId, officerId]`)
-7. **QualityReview:** `id`, `batchId`, `reviewerId`, `decision`, `remarks`, `createdAt`
-8. **StateApproval:** `id`, `batchId`, `officerId`, `decision`, `remarks`, `createdAt`
-9. **Certificate:** `id`, `certificateNumber`, `candidateId`, `batchId`, `qrCode`, `pdfPath`, `status`, `cancelReason`, `issuedAt`
-10. **AuditLog:** `id`, `userId`, `action`, `entityType`, `entityId`, `previousStatus`, `newStatus`, `remarks`, `createdAt`
+![Figure 2: Live Backend Deployment on Render](./docs/images/render_deployment_live.png)
+*Figure 2: Live Backend Deployment on Render showing automated Prisma database synchronization, demo account seeding, and server initialization on HTTPS.*
+
+![Figure 3: Production Vercel Deployment](./docs/images/vercel_env_setup.png)
+*Figure 3: Production Vercel Deployment Linking Frontend to Render Cloud API via VITE_API_URL.*
+
+![Figure 4: PostgreSQL Database Architecture in pgAdmin](./docs/images/postgres_database.png)
+*Figure 4: PostgreSQL Database Architecture in pgAdmin showing relational tables, constraints, and audit logs.*
 
 ---
 
-### 6. Submission Declaration
+### 6. Relational Data Models (Prisma Schema)
 
-This project has been developed in strict accordance with the problem statement guidelines, uses only the mandated technology stack, is fully deployed on production cloud infrastructure, and is ready for live evaluation.
+```prisma
+model User {
+  id         String     @id @default(uuid())
+  email      String     @unique
+  password   String
+  name       String
+  role       Role       // TRAINING_CENTRE, DISTRICT_OFFICER, QUALITY_TEAM, STATE_OFFICE
+  districtId String?
+  district   District?  @relation(fields: [districtId], references: [id])
+}
+
+model Batch {
+  id                String             @id @default(uuid())
+  trainingCentreId  String
+  title             String
+  courseType        String
+  courseDuration    String
+  status            BatchStatus        // DRAFT, SUBMITTED, UNDER_REVIEW, QUALITY_REVIEW, STATE_REVIEW, APPROVED, REJECTED, RETURNED
+  submittedAt       DateTime?
+  approvedAt        DateTime?
+  returnReason      String?
+  districtApprovals DistrictApproval[]
+}
+
+model DistrictApproval {
+  id        String   @id @default(uuid())
+  batchId   String
+  officerId String
+  decision  ApprovalDecision
+  remarks   String?
+  createdAt DateTime @default(now())
+
+  @@unique([batchId, officerId]) // Enforces dual consensus without duplication
+}
+
+model Certificate {
+  id                String            @id @default(uuid())
+  certificateNumber String            @unique
+  candidateId       String            @unique
+  batchId           String
+  qrCode            String
+  pdfPath           String?
+  status            CertificateStatus // ACTIVE, CANCELLED
+  cancelledAt       DateTime?
+  cancelReason      String?
+  issuedAt          DateTime          @default(now())
+}
+```
+
+---
+
+### 7. Cryptographic QR Verification Token
+
+![Figure 5: QR Verification Token](./docs/images/qr_verification_token.png)
+*Figure 5: Cryptographic QR verification token embedded into generated certificates directing smartphones to official public verification.*
+
+---
+
+### 8. Final Submission Declaration
+
+This project has been developed in strict accordance with the hackathon problem statement guidelines, uses only the mandated technology stack, is fully deployed on production cloud infrastructure, and is ready for live evaluation.
